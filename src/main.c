@@ -50,6 +50,10 @@ ISR(USART_RXC_vect) {
 }
 #endif
 
+ISR(INT2_vect) {
+  reRenderLcd = true;
+}
+
 void println(char* str) {
   serial_send_string(str);
   serial_send_char('\r');
@@ -156,16 +160,23 @@ void runCommand() {
 }
 
 void initTime() {
-	t.Second = 0;
-	t.Minute = 0;
-	t.Hour = 0;
-	t.Date = 0;
-	t.Month = (Month_t)0;
-	t.Year = 0;
+	t.Second = 50;
+	t.Minute = 10;
+	t.Hour = 21;
+	t.Date = 26;
+	t.Month = (Month_t)2;
+	t.Year = 23;
 	RTC_Set(t);
 
-  RTC_AlarmSet(Alarm1_Every_Seconds, 1, 1, 1, 1);
-  RTC_AlarmInterrupt(Alarm_1, 1);
+  RTC_SetSquareWave(RTC_SQWAVE_1_HZ);
+  // RTC_AlarmSet(Alarm1_Match_Seconds, 0, 0, 0, 2);
+  // RTC_AlarmInterrupt(Alarm_1, 1);
+
+  DDRB &= ~(1 << PB2);
+	PORTB |= (1 << PB2);
+	
+	GICR = 1<<INT2;
+	MCUCR = 1<<ISC01 | 1<<ISC00;
 }
 
 int main () {
@@ -197,7 +208,5 @@ int main () {
       reRenderLcd = false;
       printOnLcd(lcd1);
     }
-
-    // _delay_ms(10);
   }
 }
