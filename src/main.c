@@ -2,8 +2,8 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <stdio.h>
-// #include <stdbool.h>
-// #include <string.h>
+#include <stdbool.h>
+#include <string.h>
 
 #include "DS3232_lib.h"
 #include "i2c_lib.h"
