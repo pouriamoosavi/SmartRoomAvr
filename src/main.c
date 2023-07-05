@@ -26,7 +26,7 @@ volatile bool reRenderLcd = false;
 volatile uint8_t secondsPastLastCommand = 0;
 
 volatile bool curtain = true;
-volatile uint8_t lamp = 40;
+volatile uint8_t lamp = 0;
 
 volatile DateTime_t t;
 
@@ -75,21 +75,29 @@ void PWM_init() {
 }
 
 void printOnLcd(LiquidCrystalDevice_t lcd1) {
-	lq_setCursor(&lcd1, 0, 13);
+	lq_setCursor(&lcd1, 0, 12);
   char* curtainStr = (char*)"on";
   if(!curtain) {
     curtainStr = (char*)"off";
   }
 	lq_print(&lcd1, curtainStr);
 	
-  char lampStr[4];
-  sprintf(lampStr, "%hhu", lamp);
+  char lampStr[4] = "";
+  sprintf(lampStr, "%d", lamp);
+  // println(lampStr);
   // lampStr[0] = lamp[0];
   // lampStr[1] = lamp[1];
-  lampStr[2] = '%';
-  lampStr[3] = '\0';
-	lq_setCursor(&lcd1, 1, 13);
+  // lampStr[3] = '%';
+  // lampStr[4] = '\0';
+  // println(lampStr);
+	lq_setCursor(&lcd1, 1, 12);
 	lq_print(&lcd1, lampStr);
+  if(lamp < 100) {
+    lq_setCursor(&lcd1, 1, 14);
+	  lq_print(&lcd1, " ");
+  }
+  lq_setCursor(&lcd1, 1, 15);
+	lq_print(&lcd1, "%");
 	
 	DateTime_t t = RTC_Get();
 	if (RTC_Status() == RTC_OK) {
@@ -108,12 +116,12 @@ void printOnLcd(LiquidCrystalDevice_t lcd1) {
 }
 
 void setTime() {
-  sscanf(command, "set time %" SCNu8 ":%" SCNu8 ":%" SCNu8 " %" SCNu8 "/%" SCNu8 "/%" SCNu16, &t.Hour, &t.Minute, &t.Second, &t.Month, &t.Date, &t.Year);
+  sscanf((char*)command, "set time %" SCNu8 ":%" SCNu8 ":%" SCNu8 " %" SCNu8 "/%" SCNu8 "/%" SCNu16, &t.Hour, &t.Minute, &t.Second, &t.Month, &t.Date, &t.Year);
 	RTC_Set(t);
 }
 
 void setLamp() {
-  sscanf(command, "set lamp %" SCNu8, &lamp);
+  sscanf((char*)command, "set lamp %" SCNu8, &lamp);
   uint8_t duty = 255 * lamp / 100;
   OCR0=duty;
 }
@@ -138,7 +146,7 @@ If logout, just enter the password, hit enter and then enter your command.");
 
 void runCommand() {
   commandReady = false;
-  if(!loggedIn && strncmp(command, password, 4) == 0) {
+  if(!loggedIn && strncmp((char*)command, password, 4) == 0) {
     loggedIn = true;
     println("Logged in! Enter your command or enter \"help\" to show the list of commands:");
     return;
@@ -149,23 +157,23 @@ void runCommand() {
     return;
   }
 
-  if(strcasestr(command, setTimeCommand) != NULL) {
+  if(strcasestr((char*)command, setTimeCommand) != NULL) {
     setTime();
     reRenderLcd = true;
     println("Done!");
-  } else if(strcasestr(command, setLampCommand) != NULL) {
+  } else if(strcasestr((char*)command, setLampCommand) != NULL) {
     setLamp();
     reRenderLcd = true;
     println("Done!");
-  } else if(strcasestr(command, openCurtainCommand) != NULL) {
+  } else if(strcasestr((char*)command, openCurtainCommand) != NULL) {
     openCurtain();
     reRenderLcd = true;
     println("Done!");
-  } else if(strcasestr(command, closeCurtainCommand) != NULL) {
+  } else if(strcasestr((char*)command, closeCurtainCommand) != NULL) {
     closeCurtain();
     reRenderLcd = true;
     println("Done!");
-  } else if(strcasestr(command, helpCommand) != NULL) {
+  } else if(strcasestr((char*)command, helpCommand) != NULL) {
     printHelp();
   } else {
     println("Unknown input. Write help for list of commands.");
