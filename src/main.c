@@ -11,10 +11,6 @@
 #include "liquid_crystal_i2c_lib.h"
 #include "Serial_lib.h"
 
-#define PWM_PIN PB1
-#define PWM_FREQ 1000 // Frequency in Hz
-#define PWM_RESOLUTION 255 // 8-bit resolution
-
 const char* password = "1234";
 const char* setTimeCommand = "set time";
 const char* setLampCommand = "set lamp";
@@ -25,19 +21,31 @@ const char* helpCommand = "help";
 volatile char command[29]; //longest command is set time "set time 12:34:56 06/30/2023" + \0
 volatile uint8_t commandIndex = 0;
 volatile bool commandReady = false;
-volatile bool loggedIn = true;
+volatile bool loggedIn = false;
 volatile bool reRenderLcd = false;
+volatile uint8_t secondsPastLastCommand = 0;
 
 volatile bool curtain = true;
 volatile uint8_t lamp = 40;
 
 volatile DateTime_t t;
 
+void println(char* str) {
+  serial_send_string(str);
+  serial_send_char('\r');
+}
+
 #if SERIAL_INTERRUPT == 1
 ISR(USART_RXC_vect) {
+  if(commandIndex == 29) {
+    println("\rYour input is too long! Please try again:");
+    commandIndex = 0;
+  }
+
 	char c = UDR;
 	// UDR = c; // wrong way to mirror. some characters will be lost due to not wait for TXC to clear;
   serial_send_char(c);
+  secondsPastLastCommand = 0;
   
 	if(c == '\r'){
     command[commandIndex] = '\0';
@@ -52,16 +60,18 @@ ISR(USART_RXC_vect) {
 
 ISR(INT2_vect) {
   reRenderLcd = true;
-}
-
-void println(char* str) {
-  serial_send_string(str);
-  serial_send_char('\r');
+  if(loggedIn) {
+    secondsPastLastCommand++;
+    if(secondsPastLastCommand == 60) {
+      loggedIn = false;
+      println("Logged out. Enter password to login:");
+    }
+  }
 }
 
 void PWM_init() {
-	TCCR0 = (1<<WGM00) | (1<<COM01) | (1<<CS00);
-	DDRB |= (1<<PB3);  /*set OC0 pin as output*/
+	TCCR0 = (1<<WGM00) | (1<<COM01) | (1 << CS02); 
+	DDRB |= (1<<PB3); 
 }
 
 void printOnLcd(LiquidCrystalDevice_t lcd1) {
@@ -104,9 +114,8 @@ void setTime() {
 
 void setLamp() {
   sscanf(command, "set lamp %" SCNu8, &lamp);
-  uint8_t duty = PWM_RESOLUTION * lamp / 100;
+  uint8_t duty = 255 * lamp / 100;
   OCR0=duty;
-  println("Done!");
 }
 
 void openCurtain() {
@@ -143,15 +152,19 @@ void runCommand() {
   if(strcasestr(command, setTimeCommand) != NULL) {
     setTime();
     reRenderLcd = true;
+    println("Done!");
   } else if(strcasestr(command, setLampCommand) != NULL) {
     setLamp();
     reRenderLcd = true;
+    println("Done!");
   } else if(strcasestr(command, openCurtainCommand) != NULL) {
     openCurtain();
     reRenderLcd = true;
+    println("Done!");
   } else if(strcasestr(command, closeCurtainCommand) != NULL) {
     closeCurtain();
     reRenderLcd = true;
+    println("Done!");
   } else if(strcasestr(command, helpCommand) != NULL) {
     printHelp();
   } else {
