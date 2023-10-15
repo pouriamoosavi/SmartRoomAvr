@@ -127,11 +127,43 @@ void setLamp() {
 }
 
 void openCurtain() {
+  int period = 50;
+  for(short i=0; i< 9; i++) {
+    PORTC = 0x04;
+    _delay_ms(period);
+    PORTC = 0x02;
+    _delay_ms(period);
+    PORTC = 0x08;
+    _delay_ms(period);
+    PORTC = 0x01;
+    _delay_ms(period);
+  }
+  PORTC = 0x04;
+  _delay_ms(period);
+  PORTC = 0x02;
 
+  curtain = true;
 }
 
 void closeCurtain() {
+  int period = 50;
+  for(short i=0; i< 9; i++) {
+    PORTC = 0x01;
+    _delay_ms(period);
+    PORTC = 0x08;
+    _delay_ms(period);
+    PORTC = 0x02;
+    _delay_ms(period);
+    PORTC = 0x04;
+    _delay_ms(period);
+  }
+  PORTC = 0x01;
+  _delay_ms(period);
+  PORTC = 0x08;
+  _delay_ms(period);
+  PORTC = 0x02;
 
+  curtain = false;
 }
 
 void printHelp() {
